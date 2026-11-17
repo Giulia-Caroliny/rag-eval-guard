@@ -1,0 +1,36 @@
+services:
+  mongodb-dump:
+    image: mongo:8
+    container_name: mongodb-dump
+    restart: unless-stopped
+    ports:
+      - "27019:27017"
+    volumes:
+      # Se quiser montar os arquivos recuperados do backup diretamente:
+      - ./mongo_data:/data/db
+    networks:
+      - audit-net
+
+  audit-engine:
+    build:
+      context: .
+      target: dev
+    container_name: rag-eval-guard
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    # Sobrescrevemos o CMD para manter o container rodando em background (você executa os testes manualmente)
+    command: ["tail", "-f", "/dev/null"]
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb-dump
+    networks:
+      - audit-net
+
+networks:
+  audit-net:
+    driver: bridge
